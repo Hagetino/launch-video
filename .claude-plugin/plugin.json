@@ -1,0 +1,13 @@
+{
+  "name": "launch-video",
+  "version": "1.0.0",
+  "description": "Make premium brand intros and launch videos in code: a study of 11 real AI launch films, a working beat-synced HTML template, frame-exact headless Chrome rendering and ElevenLabs music.",
+  "author": {
+    "name": "Lukas Hager",
+    "url": "https://github.com/Hagetino"
+  },
+  "homepage": "https://github.com/Hagetino/launch-video",
+  "repository": "https://github.com/Hagetino/launch-video",
+  "license": "MIT",
+  "keywords": ["video", "motion-design", "launch", "intro", "animation", "elevenlabs", "headless-chrome", "skill"]
+}

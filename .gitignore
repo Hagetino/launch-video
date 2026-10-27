@@ -1,0 +1,7 @@
+.DS_Store
+*.mp4
+*.mp3
+*.wav
+*.webm
+stills/
+node_modules/

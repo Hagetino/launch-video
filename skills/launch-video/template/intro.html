@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launch intro</title>
+<meta name="viewport" content="width=1920,height=1080">
+<style>
+  /* Swap in your brand fonts here, e.g.
+     @font-face{font-family:Display;src:url(fonts/YourSerif.woff2) format('woff2')} */
+  :root{--ink:#0a0908;--paper:#f4f1ea;--accent:#8fc4e8;--accent-deep:#2f6fa3;
+        --display:'Iowan Old Style','Palatino',Georgia,serif;--sans:'Helvetica Neue',Helvetica,Arial,sans-serif;--mono:Menlo,'SF Mono',monospace}
+  html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans)}
+  canvas{position:absolute;inset:0;width:1920px;height:1080px}
+  #grain{mix-blend-mode:overlay;z-index:50;pointer-events:none}
+  .scene{position:absolute;inset:0;display:none;transform-origin:50% 50%}
+  .w{display:inline-block;will-change:transform,filter,opacity}
+  .display{font-family:var(--display);letter-spacing:-.02em;line-height:1.02;text-align:center;position:absolute;left:0;right:0}
+  .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.22em;font-size:24px}
+  .grad{background:linear-gradient(100deg,var(--paper) 0%,var(--accent) 55%,#cfe6f5 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* S2: glass prompt bar + task panel */
+  #bar{position:absolute;left:260px;top:360px;width:1400px;height:128px;border-radius:30px;box-sizing:border-box;
+       background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+       box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 40px 120px rgba(0,0,0,.6);
+       backdrop-filter:blur(28px) saturate(140%);-webkit-backdrop-filter:blur(28px) saturate(140%);
+       display:flex;align-items:center;gap:26px;padding:0 44px;font-size:48px;transform-origin:50% 50%}
+  #bar svg{width:50px;height:50px;fill:var(--paper);flex:none}
+  #typed{white-space:pre;color:var(--paper)}
+  #placeholder{position:absolute;left:120px;color:rgba(244,241,234,.38)}
+  #caret{display:inline-block;width:4px;height:56px;background:var(--accent);margin-left:2px;vertical-align:-8px}
+  #panel{position:absolute;left:260px;top:512px;width:1400px;box-sizing:border-box;border-radius:26px;overflow:hidden;
+       background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
+       box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 40px 120px rgba(0,0,0,.55);
+       backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);transform-origin:50% 0}
+  .row{display:flex;align-items:center;gap:24px;height:96px;padding:0 44px;font-size:36px;color:rgba(244,241,234,.86)}
+  .row+.row{border-top:1px solid rgba(255,255,255,.07)}
+  .row .st{width:32px;height:32px;flex:none;position:relative}
+  .row .spin{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(244,241,234,.18);border-top-color:var(--accent)}
+  .row .ok{position:absolute;inset:0;border-radius:50%;background:var(--accent)}
+  .row .ok::after{content:"";position:absolute;left:11px;top:6px;width:8px;height:15px;border:solid var(--ink);border-width:0 3px 3px 0;transform:rotate(45deg)}
+  .row .tag{margin-left:auto;font-family:var(--mono);font-size:20px;letter-spacing:.16em;color:rgba(244,241,234,.4)}
+
+  /* S3: montage overlay */
+  #hole{top:500px;font-size:68px;color:#fff;text-shadow:0 2px 30px rgba(0,0,0,.55)}
+  #label{position:absolute;left:0;right:0;top:1010px;text-align:center;color:rgba(255,255,255,.85)}
+  #idx{position:absolute;left:96px;top:60px;color:rgba(255,255,255,.7)}
+  #idx2{position:absolute;right:96px;top:60px;color:rgba(255,255,255,.7)}
+
+  /* S4: statement on paper (the light/dark inversion) */
+  #s4{background:var(--paper);color:var(--ink)}
+  #s4 .display{font-size:150px}
+  #s4 .acc{color:var(--accent-deep)}
+
+  /* S5: tiny mono caps coda */
+  #coda{position:absolute;top:529px;left:0;right:0;height:30px}
+  #codaL{position:absolute;right:calc(50% + 80px);white-space:pre}
+  #codaR{position:absolute;left:calc(50% + 80px);white-space:pre}
+
+  /* S6: logo lockup */
+  #lock{position:absolute;left:0;right:0;top:0;height:1080px;display:flex;align-items:center;justify-content:center;gap:52px}
+  #mark6{width:190px;height:190px;overflow:visible;fill:var(--paper)}
+  #word6{font-weight:700;font-size:168px;letter-spacing:-.035em;line-height:1}
+  #sub6{position:absolute;left:0;right:0;top:700px;text-align:center;color:rgba(244,241,234,.5);font-size:18px}
+</style>
+</head>
+<body>
+<canvas id="bg" width="1920" height="1080"></canvas>
+
+<div class="scene" id="s1">
+  <div class="display" id="s1a" style="top:470px;font-size:118px"></div>
+  <div class="display" id="s1b" style="top:470px;font-size:118px"></div>
+  <div class="mono" id="s1m" style="position:absolute;left:0;right:0;top:1000px;text-align:center;color:rgba(244,241,234,.45);font-size:17px"></div>
+</div>
+
+<div class="scene" id="s2">
+  <div id="bar">
+    <svg viewBox="0 0 7 7" id="barmark"></svg>
+    <div id="placeholder">Ask anything</div>
+    <div><span id="typed"></span><span id="caret"></span></div>
+  </div>
+  <div id="panel"></div>
+</div>
+
+<div class="scene" id="s3">
+  <div class="display" id="hole"></div>
+  <div class="mono" id="label"></div>
+  <div class="mono" id="idx"></div>
+  <div class="mono" id="idx2"></div>
+</div>
+
+<div class="scene" id="s4">
+  <div class="display" id="s4a" style="top:330px"></div>
+  <div class="display" id="s4b" style="top:500px"></div>
+</div>
+
+<div class="scene" id="s5">
+  <div class="mono" id="coda"><span id="codaL"></span><span id="codaR"></span></div>
+</div>
+
+<div class="scene" id="s6">
+  <div id="lock"><svg id="mark6" viewBox="0 0 7 7"></svg><div id="word6"></div></div>
+  <div class="mono" id="sub6"></div>
+</div>
+
+<canvas id="grain" width="1920" height="1080"></canvas>
+
+<script>
+/*
+  24 s brand intro at 120 BPM. render(t) paints the frame at t seconds (deterministic, no timers),
+  so render.mjs can capture it frame-exactly. Open the file in a browser to preview it live.
+
+  The edit follows the music: build 0-8 s, drop at 8.0, groove to 14, open moment 14-17,
+  one hit per beat 17-20.5, logo on the final hit. Generate the track first, measure it with
+  scripts/beats.py, then move the scene times below so every change lands on a beat.
+
+  References (see STYLE.md): Opus 5.5 launch (fixed shape, world swaps under it on the beat),
+  Raycast 2026 (glass UI, tiny mono caps coda), ElevenLabs/Lovable (blur-in type, one accent word, grain).
+*/
+
+// ---------- edit this: all the copy, in order ----------
+// Words wrapped in *asterisks* get the accent treatment.
+const COPY = {
+  openTag: 'Your tagline · Your city',
+  open1: 'The tools got better.',
+  open2: 'Most people *didn’t.',
+  prompt: 'Turn this 40-page report into a one-page brief',
+  tasks: [['Reading all 40 pages', 'report.pdf'], ['Pulling out what matters', '12 points'], ['Checking every claim', '0 guesses']],
+  montageTitle: 'Every discipline.',
+  montageCorner: 'For everyone',
+  statement1: 'The last mile',
+  statement2: 'runs through *us.',
+  coda: [['Build', 'together'], ['Learn', 'by doing'], ['Meet', 'the people'], ['Ship', 'real things'], ['No code', 'needed'], ['Open', 'to all'], ['Your', 'brand']],
+  name: 'Your Brand',
+  sub: 'Your tagline · Your city · 2026',
+};
+// montage: [start time, texture, variant, label]. Every beat (0.5 s), then every half-beat.
+const SHOTS = () => [
+  [8.0, 'finance', {}, 'Finance'], [8.5, 'contours', {}, 'Economics'], [9.0, 'halftone', {}, 'Marketing'], [9.5, 'blueprint', {}, 'Strategy'],
+  [10.0, 'code', {}, 'Data'], [10.5, 'paper', {}, 'Writing'], [11.0, 'meshTex', WARM, 'Startups'], [11.5, 'stripes', {}, 'Operations'],
+  [12.0, 'meshTex', PURPLE, 'Design'], [12.25, 'meshTex', GREEN, 'Impact'], [12.5, 'halftone', { bg: '#1d3fd1', ink: '#9fd0ff' }, 'People'],
+  [12.75, 'paper', { bg: '#1b1712', ink: '#efe6d2' }, 'Law'], [13.0, 'finance', { bg: '#e9e1cf', up: '#1b1712', down: '#d8402a', seed: 9 }, 'Markets'],
+  [13.25, 'contours', { bg: '#0c1a2b', ink: 'rgba(143,196,232,.8)' }, 'Policy'], [13.5, 'stripes', { bg: '#ff5a3c', ink: '#2b0b05' }, 'Logistics'],
+  [13.75, 'code', { bg: '#efe6d2', ink: '#1b1712', seed: 5 }, 'Research'],
+];
+const PAPER_TEXT = 'Chapter 3. The team has until Friday to decide, and the numbers in the appendix do not agree with the forecast. ';
+
+const W = 1920, H = 1080, BEAT = 0.5, DUR = 24;
+
+// ---------- helpers ----------
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const expoOut = x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * clamp01(x));
+const inOut = x => { x = clamp01(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+function spring(t, f = 2.2, z = .62) {
+  if (t <= 0) return 0;
+  const w = 2 * Math.PI * f, wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t));
+}
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const $ = id => document.getElementById(id);
+
+// split text into word spans; words wrapped in * are accent
+function words(el, text, accentCls) {
+  el.innerHTML = '';
+  return text.split(' ').map((w, i, a) => {
+    const s = document.createElement('span'); s.className = 'w';
+    const acc = w.startsWith('*'); if (acc) { s.classList.add(accentCls); w = w.slice(1); }
+    s.textContent = w; s.acc = acc; el.appendChild(s);
+    if (i < a.length - 1) el.appendChild(document.createTextNode(' '));
+    return s;
+  });
+}
+// blur-in: opacity + blur + small rise + tracking settle; exit: blur out in place
+function blurIn(s, t, at, outAt = Infinity, dur = .55) {
+  const p = expoOut((t - at) / dur), q = clamp01((t - outAt) / .25);
+  s.style.opacity = p * (1 - q);
+  s.style.filter = `blur(${(1 - p) * 18 + q * 10}px)`;
+  s.style.transform = `translateY(${(1 - p) * .28}em)`;
+  s.style.letterSpacing = `${(1 - p) * .03}em`;
+}
+function stagger(ws, t, at, outAt, gap = .085) {
+  ws.forEach((s, i) => blurIn(s, t, at + i * gap + (s.acc ? .15 : 0), outAt));
+}
+
+// ---------- the mark: a dotted disc on a 7x7 grid (replace DOTS with your own logo's squares) ----------
+const DOTS = [];
+for (let gy = 0; gy < 7; gy++) for (let gx = 0; gx < 7; gx++) {
+  const cx = gx + .5, cy = gy + .5, d = Math.hypot(cx - 3.5, cy - 3.5);
+  if (d > 3.3) continue;
+  DOTS.push({ cx, cy, s: .62 - d * .1, d });
+}
+const MAXD = Math.max(...DOTS.map(d => d.d));
+function svgMark(svg) {
+  return DOTS.map(d => { const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r.setAttribute('x', d.cx - d.s / 2); r.setAttribute('y', d.cy - d.s / 2); r.setAttribute('width', d.s); r.setAttribute('height', d.s);
+    svg.appendChild(r); return r; });
+}
+svgMark($('barmark'));
+const mark6 = svgMark($('mark6'));
+
+// ---------- canvases ----------
+const bg = $('bg').getContext('2d'), gr = $('grain').getContext('2d');
+const GRAIN = [0, 1, 2, 3, 4, 5].map(k => {
+  const c = document.createElement('canvas'); c.width = 960; c.height = 540;
+  const g = c.getContext('2d'), im = g.createImageData(960, 540), r = rng(99 + k);
+  for (let i = 0; i < im.data.length; i += 4) { const v = r() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+  g.putImageData(im, 0, 0); return c;
+});
+function grain(t, amount) {
+  gr.clearRect(0, 0, W, H);
+  gr.globalAlpha = amount; gr.imageSmoothingEnabled = false;
+  gr.drawImage(GRAIN[Math.floor(t * 24) % GRAIN.length], 0, 0, W, H);
+  gr.globalAlpha = 1;
+  // vignette
+  const v = gr.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * 1.05);
+  v.addColorStop(0, 'rgba(128,128,128,0)'); v.addColorStop(1, 'rgba(0,0,0,.55)');
+  gr.fillStyle = v; gr.fillRect(0, 0, W, H);
+}
+
+// grainy mesh gradient: soft colour blobs drifting
+function mesh(ctx, t, base, blobs, push = 1) {
+  ctx.save(); ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+  ctx.translate(W / 2, H / 2); ctx.scale(push, push); ctx.translate(-W / 2, -H / 2);
+  ctx.filter = 'blur(70px)'; ctx.globalCompositeOperation = 'lighter';
+  for (const [x, y, r, col, sx, sy] of blobs) {
+    const px = x * W + Math.sin(t * sx + x * 9) * 140, py = y * H + Math.cos(t * sy + y * 7) * 90;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+// ---------- montage textures (each its own material, like the Opus 5.5 film) ----------
+const TEX = {
+  finance(c, t, v) {
+    c.fillStyle = v.bg || '#06101d'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(143,196,232,.12)'; c.lineWidth = 1;
+    for (let y = 60; y < H; y += 90) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    for (const [k, base] of [[0, 260], [1, 540], [2, 820]]) {
+      const r = rng((v.seed || 3) + k * 17); let p = base;
+      for (let i = 0; i < 70; i++) {
+        const x = i * 30 - (t * 60) % 30, o = p, cl = p + (r() - .48) * 90; p = cl;
+        const up = cl < o; c.fillStyle = up ? (v.up || '#8fc4e8') : (v.down || '#e86b5a');
+        c.fillRect(x, Math.min(o, cl), 16, Math.max(4, Math.abs(cl - o)));
+        c.fillRect(x + 7, Math.min(o, cl) - 30 * r(), 2, Math.abs(cl - o) + 60 * r());
+        p += (base - p) * .08;
+      }
+    }
+  },
+  contours(c, t, v) {
+    c.fillStyle = v.bg || '#efe6d2'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = v.ink || 'rgba(60,40,20,.7)'; c.lineWidth = 2;
+    for (let k = -6; k < 46; k++) {
+      c.beginPath();
+      for (let x = -20; x <= W + 20; x += 16) {
+        const y = k * 26 + 70 * Math.sin(x * .0032 + k * .21 + t * .6) + 40 * Math.sin(x * .0081 - k * .13);
+        x < 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+  },
+  halftone(c, t, v) {
+    c.fillStyle = v.bg || '#ff5a3c'; c.fillRect(0, 0, W, H);
+    c.fillStyle = v.ink || '#ffd2c2';
+    for (let y = 0; y < H + 40; y += 34) for (let x = (y / 34 % 2) * 17; x < W + 40; x += 34) {
+      const r = 15 * (.5 + .5 * Math.sin(x * .004 + y * .006 + t * 2.2));
+      c.beginPath(); c.arc(x, y, Math.max(.5, r), 0, 7); c.fill();
+    }
+  },
+  blueprint(c, t, v) {
+    c.fillStyle = v.bg || '#1f4f8f'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(255,255,255,.13)'; c.lineWidth = 1;
+    for (let x = 0; x < W; x += 48) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
+    for (let y = 0; y < H; y += 48) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 3;
+    const r = rng(7);
+    for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(W / 2 + (r() - .5) * 900, H / 2 + (r() - .5) * 500, 120 + r() * 420, r() * 6, r() * 6 + 1.5 + t * .3); c.stroke(); }
+    for (let i = 0; i < 14; i++) { c.beginPath(); const a = r() * 6; c.moveTo(r() * W, r() * H); c.lineTo(r() * W + Math.cos(a + t * .2) * 400, r() * H + Math.sin(a) * 400); c.stroke(); }
+  },
+  code(c, t, v) {
+    c.fillStyle = v.bg || '#03080d'; c.fillRect(0, 0, W, H);
+    c.font = '22px Menlo, monospace'; c.fillStyle = v.ink || '#8fc4e8';
+    const r = rng(v.seed || 11), toks = ['revenue', '=', 'sum(', 'df[', '"q3"', '])', '0.82', 'model', '.fit(', 'x,', 'y)', 'margin', '→', '42.1%', 'churn', '<', '0.05', 'if', 'return'];
+    for (let row = 0; row < 40; row++) {
+      let x = 20 - ((t * 140 * (row % 3 + 1)) % 200); const y = row * 30 + 20;
+      c.globalAlpha = .35 + .65 * r();
+      while (x < W) { const s = toks[Math.floor(r() * toks.length)]; c.fillText(s, x, y); x += c.measureText(s + ' ').width; }
+    }
+    c.globalAlpha = 1;
+  },
+  paper(c, t, v) {
+    c.fillStyle = v.bg || '#f2ede2'; c.fillRect(0, 0, W, H);
+    c.fillStyle = v.ink || '#1b1712'; c.font = '30px ' + getComputedStyle(document.documentElement).getPropertyValue('--display');
+    const off = (t * 40) % 44;
+    for (let y = -40; y < H + 44; y += 44) {
+      const line = (PAPER_TEXT + PAPER_TEXT).slice((y / 44 * 13) % 90 | 0);
+      c.fillText(line, 40 - (y % 3) * 30, y - off + 44);
+    }
+  },
+  stripes(c, t, v) {
+    c.fillStyle = v.bg || '#e3a90b'; c.fillRect(0, 0, W, H);
+    c.save(); c.translate(W / 2, H / 2); c.rotate(-.5); c.fillStyle = v.ink || '#111';
+    for (let x = -1600 + (t * 120) % 90; x < 1600; x += 90) c.fillRect(x, -1200, 34, 2400);
+    c.restore();
+  },
+  meshTex(c, t, v) { mesh(c, t, v.bg, v.blobs); },
+};
+const PURPLE = { bg: '#14062a', blobs: [[.3, .4, 700, '#ff6a3d', .9, .7], [.7, .6, 800, '#7b3cff', .6, .8], [.5, .2, 500, '#ff3d9a', .7, .5]] };
+const WARM = { bg: '#1a0c04', blobs: [[.3, .5, 750, '#ff8a2a', .8, .6], [.7, .4, 700, '#ffd166', .6, .7], [.5, .85, 550, '#e8402a', .5, .5]] };
+const GREEN = { bg: '#04140a', blobs: [[.3, .6, 800, '#1f9d55', .7, .6], [.75, .35, 700, '#c8f05a', .5, .9], [.55, .8, 500, '#0a6b6b', .8, .4]] };
+const SHOT_LIST = SHOTS();
+
+function montage(t) {
+  let i = SHOT_LIST.length - 1; while (i > 0 && t < SHOT_LIST[i][0]) i--;
+  const [at, name, v, label] = SHOT_LIST[i];
+  TEX[name](bg, t - at + i * .37, v);
+  // mask: the mark, squares bloomed so the material reads through
+  const S = 1360 * (1 + .04 * clamp01((t - 8) / 6)), u = S / 7, ox = W / 2 - S / 2, oy = H / 2 - S / 2;
+  const grow = 1.78;
+  bg.save(); bg.globalCompositeOperation = 'destination-in'; bg.beginPath();
+  for (const d of DOTS) { const s = d.s * grow * u; bg.rect(ox + d.cx * u - s / 2, oy + d.cy * u - s / 2, s, s); }
+  bg.fill(); bg.restore();
+  bg.save(); bg.globalCompositeOperation = 'destination-over'; bg.fillStyle = '#0a0908'; bg.fillRect(0, 0, W, H); bg.restore();
+  $('label').textContent = label;
+  $('idx').textContent = String(i + 1).padStart(2, '0') + ' / ' + SHOT_LIST.length;
+}
+
+// ---------- satin background for the UI scene ----------
+function satin(t, push) {
+  const c = bg; c.save();
+  c.fillStyle = '#070707'; c.fillRect(0, 0, W, H);
+  c.translate(W / 2, H / 2); c.scale(push, push); c.translate(-W / 2, -H / 2);
+  c.filter = 'blur(40px)';
+  const g = c.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#1c1c1e'); g.addColorStop(.5, '#0a0a0b'); g.addColorStop(1, '#232326');
+  c.fillStyle = g;
+  c.beginPath(); c.moveTo(-200, 300 + Math.sin(t * .5) * 40); c.bezierCurveTo(500, 0, 900, 900, 2200, 500); c.lineTo(2200, 1400); c.lineTo(-200, 1400); c.fill();
+  c.filter = 'blur(6px)'; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(-100, 980 - t * 12); c.bezierCurveTo(500, 760, 900, 300 + t * 8, 1500, -100); c.stroke();
+  c.filter = 'blur(90px)'; c.fillStyle = 'rgba(143,196,232,.12)'; c.beginPath(); c.arc(960, 470, 420, 0, 7); c.fill();
+  c.restore();
+}
+
+// ---------- scene setup ----------
+const s1a = words($('s1a'), COPY.open1, 'grad');
+const s1b = words($('s1b'), COPY.open2, 'grad');
+const s4a = words($('s4a'), COPY.statement1, 'acc');
+const s4b = words($('s4b'), COPY.statement2, 'acc');
+const hole1 = words($('hole'), COPY.montageTitle, 'x');
+const word6 = words($('word6'), COPY.name, 'x');
+$('idx2').textContent = COPY.montageCorner;
+$('panel').innerHTML = COPY.tasks.map(([txt, tag]) =>
+  `<div class="row"><div class="st"><div class="spin"></div><div class="ok"></div></div><span>${txt}</span><span class="tag">${tag}</span></div>`).join('');
+const typeTimes = (() => { const r = rng(42); let acc = 5.0; return [...COPY.prompt].map(() => (acc += .028 + r() * .022)); })();
+const rows = [...document.querySelectorAll('.row')];
+const CODA = COPY.coda.map(([a, b], i) => [17.0 + i * BEAT, a, b]);
+const SCATTER = DOTS.map((d, i) => { const r = rng(300 + i); return { x: (r() - .5) * 26, y: (r() - .5) * 14, rot: (r() - .5) * 3 }; });
+
+function show(id, on) { $(id).style.display = on ? 'block' : 'none'; }
+
+function render(t) {
+  const sc = t < 4 ? 1 : t < 8 ? 2 : t < 14 ? 3 : t < 17 ? 4 : t < 20.5 ? 5 : 6;
+  for (let k = 1; k <= 6; k++) show('s' + k, sc === k);
+  bg.clearRect(0, 0, W, H);
+
+  if (sc === 1) {
+    mesh(bg, t, '#050608', [[.35, .55, 650, 'rgba(47,111,163,.55)', .5, .4], [.68, .45, 560, 'rgba(143,196,232,.35)', .4, .6], [.5, .9, 700, 'rgba(232,140,90,.18)', .3, .3]], 1 + t * .015);
+    stagger(s1a, t, .5, 2.2);
+    stagger(s1b, t, 2.5, 99);
+    const m = COPY.openTag, p = clamp01((t - .3) / .7);
+    $('s1m').textContent = m.slice(0, Math.round(m.length * p));
+    $('s1').style.transform = `scale(${1 + t * .008})`;
+  }
+
+  if (sc === 2) {
+    const lt = t - 4;
+    satin(lt, 1 + lt * .02);
+    // the bar arrives huge and pulls back (Raycast), then the camera pushes through it into the drop
+    const pull = inOut(lt / 1.1), push = Math.pow(clamp01((t - 7.35) / .65), 2.4);
+    $('s2').style.transform = `scale(${1 + push * 6})`;
+    $('s2').style.transformOrigin = '960px 424px';
+    $('s2').style.filter = `blur(${push * 14}px)`;
+    $('bar').style.transform = `scale(${2.6 - 1.6 * pull})`;
+    const n = typeTimes.filter(x => x <= t).length;
+    $('typed').textContent = COPY.prompt.slice(0, n);
+    $('placeholder').style.opacity = n ? 0 : 1;
+    $('caret').style.opacity = (n > 0 && n < COPY.prompt.length) || Math.floor(t * 2.6) % 2 ? 1 : 0;
+    // results panel opens on the beat after typing, rows resolve on beats
+    const open = spring(t - 6.75, 2.6, .8);
+    $('panel').style.opacity = clamp01((t - 6.75) * 6);
+    $('panel').style.transform = `scaleY(${.6 + .4 * open}) translateY(${(1 - open) * -20}px)`;
+    rows.forEach((r, i) => {
+      blurIn(r, t, 6.85 + i * .12);
+      const done = t >= 7.0 + i * .25;
+      r.querySelector('.ok').style.opacity = done ? 1 : 0;
+      r.querySelector('.spin').style.opacity = done ? 0 : 1;
+      r.querySelector('.spin').style.transform = `rotate(${t * 720}deg)`;
+      r.querySelector('.tag').style.opacity = done ? 1 : 0;
+    });
+  }
+
+  if (sc === 3) {
+    montage(t);
+    stagger(hole1, t, 8.5, 99, .12);
+  }
+
+  if (sc === 4) {
+    $('s4').style.transform = `scale(${1 + (t - 14) * .012})`;
+    stagger(s4a, t, 14.05, 99, .09);
+    stagger(s4b, t, 15.0, 99, .11);
+  }
+
+  if (sc === 5) {
+    let i = CODA.length - 1; while (i > 0 && t < CODA[i][0]) i--;
+    const flicker = (t - CODA[i][0]) < 1 / 30 * 2 && Math.floor(t * 60) % 2;
+    $('codaL').textContent = flicker ? '' : CODA[i][1];
+    $('codaR').textContent = flicker ? '' : CODA[i][2];
+    $('coda').style.color = i === CODA.length - 1 ? 'var(--accent)' : 'var(--paper)';
+  }
+
+  if (sc === 6) {
+    // dots fly in from scattered positions and settle into the mark, then the name
+    mark6.forEach((r, i) => {
+      const d = DOTS[i], sp = SCATTER[i], p = spring(t - 20.5 - (d.d / MAXD) * .25, 1.6, .72);
+      const x = sp.x * (1 - p), y = sp.y * (1 - p), k = .3 + .7 * Math.min(p, 1.2);
+      r.setAttribute('transform', `translate(${x} ${y}) translate(${d.cx} ${d.cy}) rotate(${sp.rot * (1 - p) * 57}) scale(${k}) translate(${-d.cx} ${-d.cy})`);
+      r.style.opacity = clamp01((t - 20.5) * 8);
+    });
+    stagger(word6, t, 21.2, 99, .1);
+    const m = COPY.sub, p = clamp01((t - 21.9) / .6);
+    $('sub6').textContent = m.slice(0, Math.round(m.length * p));
+    $('lock').style.transform = `scale(${1 + (t - 20.5) * .006})`;
+  }
+
+  grain(t, sc === 4 ? .10 : .16);
+}
+
+window.DUR = DUR;
+window.render = render;
+window.ready = document.fonts.ready.then(() => { render(0); return true; });
+if (!new URLSearchParams(location.search).has('render')) {
+  window.ready.then(() => { const t0 = performance.now(); (function tick(now) { render(((now - t0) / 1000) % DUR); requestAnimationFrame(tick); })(t0); });
+}
+</script>
+</body>
+</html>

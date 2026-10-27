@@ -1,0 +1,4 @@
+# One line per effect: <file> <seconds> <description>. Used by the SKILL.md workflow with gen_sfx.sh.
+blip   0.5  Single tight punchy electronic hit, short dry click with a little sub thump, modern minimal tech teaser, no reverb tail
+hit    2.0  Huge cinematic impact hit, deep sub boom with a short bright transient, modern trailer logo reveal, short tail
+typing 2.0  Fast quiet typing on a premium low-profile laptop keyboard, close and dry, no room sound
